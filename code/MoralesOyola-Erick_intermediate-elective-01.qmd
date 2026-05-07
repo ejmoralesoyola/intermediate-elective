@@ -1,0 +1,32 @@
+---
+title: "Intermediate Elective 1"
+date: "10 May 2026"
+author: "Erick Morales Oyola"
+format: pdf
+editor: source
+execute:
+  message: false
+  warning: false
+---
+
+# Setup 
+
+## Packages
+
+```{r}
+#| label: packages
+
+```
+
+## Data
+
+# Problems 
+
+## 1. Explain your inspiration 
+
+For my inspiration, I chose Cédric Scherer’s “Bill Dimensions of Brush-tailed Penguins.” I really like how the figure combines individual observations with group-level summaries, using color, point size, labels, and a second distribution panel to make the patterns feel informative while being visually polished.
+
+This inspiration makes sense for the water quality dataset because the data also includes multiple continuous variables that can be explored together. Instead of comparing penguin bill length, bill depth, and body mass by species, I can compare water temperature, dissolved oxygen, and salinity across sampling sites at North Campus Open Space.
+
+In my visualization, water temperature will be shown on the x-axis, dissolved oxygen will be shown on the y-axis, salinity will be represented by point size, and site will be represented by color. I also plan to include site-level summary markers or error bars to show median conditions per each site, following the same general idea as the penguin figure’s species-level summaries.
+
