@@ -20,4 +20,4 @@ This repository contains data and code to ....
 ```
 
 ## Rendered output
-The rendered output for the code in this repository is here
+The rendered output for the code in this repository is here (https://github.com/ejmoralesoyola/intermediate-elective/blob/2e177f5f88e391187c792410da2f2b127350579f/code/MoralesOyola-Erick_intermediate-elective-01.pdf).
