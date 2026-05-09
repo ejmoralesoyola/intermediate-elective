@@ -16,9 +16,163 @@ execute:
 ```{r}
 #| label: packages
 
+#Loading general use and cleaning packages
+library(tidyverse)
+library(here)
+library(janitor)
+
+#Loading date package
+library(lubridate)
+
+#Loading package for wrapping long axis labels
+library(scales)
+
+#Loading package for arranging plots together
+library(patchwork)
+
+#Loading packages for more customized figure styling
+library(colorspace)
+library(ggtext)
+library(ggdist)
 ```
 
 ## Data
+
+```{r}
+#| label: data
+
+#Reading in water quality survey metadata
+metadata <- read_csv(here("data", "NCOS_YSI_Water_Quality_Monitoring_0.csv"),
+                     show_col_types = FALSE)
+
+#Reading in water quality parameter measurements
+water_parameters <- read_csv(here("data", "YSI_Data_Begin_1.csv"),
+                             show_col_types = FALSE)
+```
+
+## Cleaning 
+
+```{r}
+#Creating a cleaned metadata dataset
+
+metadata_clean <- metadata |>
+  #Cleaning column names
+  clean_names() |>
+  #Excluding irrelevant columns
+  select(!c(object_id, creator, editor)) |>
+  #Making sure monitoring date is in datetime format
+  mutate(monitoring_date = lubridate::mdy_hms(monitoring_date)) |>
+  #Renaming monitoring date column to clarify that it includes time
+  rename(monitoring_datetime = monitoring_date) |>
+  #Creating a column for site name
+  mutate(site_full = case_when(
+    site_name == "east_channel" ~ "East Channel",
+    site_name == "phelps_bridge" ~ "Phelps Bridge",
+    site_name == "venoco_bridge" ~ "Venoco Bridge",
+    site_name == "other" ~ "Other"
+  ))
+```
+
+```{r}
+#| label: cleaning-water-parameters
+
+#Creating a cleaned water parameters dataset
+water_parameters_clean <- water_parameters |>
+  #Cleaning column names
+  clean_names() |>
+  #Excluding unnecessary columns
+  select(!c(creator, editor)) |>
+  #Renaming depth code to elevation code
+  rename(elevation_code = depth_code) |>
+  #Replacing incorrect elevation code from 2021-07-16
+  mutate(elevation_code = case_when(
+    elevation_code == 10 ~ 1,
+    .default = elevation_code
+  )) |>
+  #Setting elevation code as a factor
+  mutate(elevation_code = as_factor(elevation_code),
+         elevation_code = fct_relevel(elevation_code,
+                                      "0", "1", "2", "3", "4", "5", "6"))
+```
+
+```{r}
+#| label: joining-water-quality-data
+
+#Joining metadata and water parameter measurements
+water_quality <- full_join(
+  #Using metadata as the left dataframe
+  x = metadata_clean,
+  #Using water parameters as the right dataframe
+  y = water_parameters_clean,
+  #Joining survey records to their matching parameter measurements
+  by = c("global_id" = "parent_global_id")
+) |>
+  #Selecting relevant columns for the elective visualization
+  select(global_id,
+         monitoring_datetime,
+         site_name,
+         site_full,
+         water_surface_elevation,
+         elevation_code,
+         do_mg_l,
+         do_percent_sat,
+         conductivity_u_s_cm,
+         salinity_ppt,
+         temperature_c) |>
+  #Extracting the date from monitoring datetime
+  mutate(date = lubridate::date(monitoring_datetime)) |>
+  #Moving date next to monitoring datetime for readability
+  relocate(date, .after = monitoring_datetime) |>
+  #Removing the original datetime column
+  select(!monitoring_datetime)
+```
+
+```{r}
+#| label: cleaning-elective-data
+
+#Creating a cleaned water quality dataset for the elective figure
+water_quality_clean <- water_quality |>
+  #Filtering out other sites so the figure focuses on the three main sites
+  filter(site_full != "Other") |>
+  #Filtering out extreme salinity outliers
+  filter(salinity_ppt < 1410) |>
+  #Filtering to the main elevation codes used in class
+  filter(elevation_code %in% c("0", "1", "2")) |>
+  #Removing rows without the main variables needed for the figure
+  filter(!is.na(temperature_c),
+         !is.na(do_mg_l),
+         !is.na(salinity_ppt)) |>
+  #Ordering sites from lower to higher salinity
+  mutate(site_full = fct_relevel(site_full,
+                                 "Phelps Bridge",
+                                 "East Channel",
+                                 "Venoco Bridge"))
+#Displaying 10 random rows from the cleaned elective dataset
+water_quality_clean |>
+  slice_sample(n = 10)
+```
+
+```{r}
+#| label: site-summary-data
+
+#Creating site-level summary values for the scatterplot
+site_summary <- water_quality_clean |>
+  #Grouping by sampling site
+  group_by(site_full) |>
+  #Calculating median and standard deviation values for each site
+  summarize(med_temperature = median(temperature_c, na.rm = TRUE),
+            med_oxygen = median(do_mg_l, na.rm = TRUE),
+            med_salinity = median(salinity_ppt, na.rm = TRUE),
+            sd_temperature = sd(temperature_c, na.rm = TRUE),
+            sd_oxygen = sd(do_mg_l, na.rm = TRUE),
+            n = n()) |>
+  #Ungrouping the dataframe
+  ungroup()
+
+#Displaying the site-level summary data
+site_summary
+```
+
 
 # Problems 
 
@@ -29,4 +183,146 @@ For my inspiration, I chose Cédric Scherer’s “Bill Dimensions of Brush-tail
 This inspiration makes sense for the water quality dataset because the data also includes multiple continuous variables that can be explored together. Instead of comparing penguin bill length, bill depth, and body mass by species, I can compare water temperature, dissolved oxygen, and salinity across sampling sites at North Campus Open Space.
 
 In my visualization, water temperature will be shown on the x-axis, dissolved oxygen will be shown on the y-axis, salinity will be represented by point size, and site will be represented by color. I also plan to include site-level summary markers or error bars to show median conditions per each site, following the same general idea as the penguin figure’s species-level summaries.
+
+## 2. Plan your figure
+
+!! DONT FORGET TO INSERT SKETCH !!!!!!!!! PLEASEEEEE
+
+For my figure, I plan to adapt the structure of the penguin bill-dimensions visualization into a water quality figure. The top panel will be a scatterplot showing water temperature on the x-axis and dissolved oxygen on the y-axis, with point color representing site and point size representing salinity. I also plan to include larger site-level summary points and error bars to show median conditions for each site.
+
+The bottom panel will show the distribution of salinity across sites, similar to the distribution panel in the inspiration figure. This will help connect individual water quality measurements to broader site-level differences in salinity.
+
+## 3. Code your figure
+
+```{r}
+#| label: 3-figure-color-palette
+
+#Creating a site color palette inspired by the bright colors in the penguin figure
+site_palette <- c(
+  "Phelps Bridge" = "#159090",
+  "East Channel" = "#FF8C00",
+  "Venoco Bridge" = "#A034F0"
+)
+```
+
+```{r}
+#| label: 3-figure-data
+
+#Creating a focused dataset for the final elective figure
+elective_figure_data <- water_quality_clean |>
+  #Creating year and month columns from the date column
+  mutate(year = year(date),
+         month = month(date)) |>
+  #Creating water year so the figure matches the class workflow
+  mutate(wy = case_when(
+    month >= 10 ~ year + 1,
+    .default = year
+  )) |>
+  #Keeping only water year 2024 to make the figure more focused and readable
+  filter(wy == "2024") |>
+  #Keeping only the three main NCOS sites
+  filter(site_full %in% c("Phelps Bridge",
+                          "East Channel",
+                          "Venoco Bridge")) |>
+  #Removing missing values in the main variables used for plotting
+  filter(!is.na(temperature_c),
+         !is.na(do_mg_l),
+         !is.na(salinity_ppt))
+
+#Creating site-level summary values for the scatterplot
+elective_site_summary <- elective_figure_data |>
+  #Grouping by site
+  group_by(site_full) |>
+  #Calculating median and standard deviation values for each site
+  summarize(med_temperature = median(temperature_c, na.rm = TRUE),
+            med_oxygen = median(do_mg_l, na.rm = TRUE),
+            med_salinity = median(salinity_ppt, na.rm = TRUE),
+            sd_temperature = sd(temperature_c, na.rm = TRUE),
+            sd_oxygen = sd(do_mg_l, na.rm = TRUE),
+            n = n()) |>
+  #Ungrouping the dataframe
+  ungroup() |>
+  #Creating slightly adjusted oxygen positions so overlapping error bars are readable
+  mutate(plot_med_oxygen = case_when(
+    site_full == "Phelps Bridge" ~ med_oxygen - 0.25,
+    site_full == "East Channel" ~ med_oxygen + 0.35,
+    site_full == "Venoco Bridge" ~ med_oxygen - 0.35
+  ))
+
+#Displaying the summary data used for the group-level figure layers
+elective_site_summary
+```
+
+
+```{r}
+#| label: 3-scatterplot
+#| fig-width: 9
+#| fig-height: 6
+
+#Creating the top panel of the figure
+water_quality_scatter <- ggplot(data = elective_figure_data,
+                                #Mapping temperature, dissolved oxygen, site, and salinity
+                                mapping = aes(x = temperature_c,
+                                              y = do_mg_l,
+                                              color = site_full,
+                                              size = salinity_ppt)) +
+  #Adding individual water quality measurements as opaque points
+  geom_point(alpha = 0.5) +
+  #Adding vertical error bars to show dissolved oxygen variation around each site median
+  geom_errorbar(data = elective_site_summary,
+              mapping = aes(x = med_temperature,
+                            ymin = plot_med_oxygen - sd_oxygen,
+                            ymax = plot_med_oxygen + sd_oxygen,
+                            color = site_full),
+              inherit.aes = FALSE,
+              width = 0.35,
+              linewidth = 0.8,
+              show.legend = FALSE) +
+  #Adding horizontal error bars to show temperature variation around each site median
+  geom_errorbar(data = elective_site_summary,
+              mapping = aes(y = plot_med_oxygen,
+                            xmin = med_temperature - sd_temperature,
+                            xmax = med_temperature + sd_temperature,
+                            color = site_full),
+              inherit.aes = FALSE,
+              orientation = "y",
+              width = 0.25,
+              linewidth = 0.8,
+              show.legend = FALSE) +
+  #Adding larger median points for each site
+  geom_point(data = elective_site_summary,
+           mapping = aes(x = med_temperature,
+                         y = plot_med_oxygen,
+                         fill = site_full,
+                         size = med_salinity),
+           inherit.aes = FALSE,
+           shape = 21,
+           color = "white",
+           stroke = 0.9,
+           show.legend = FALSE) +
+  #Using the custom site colors
+  scale_color_manual(values = site_palette) +
+  #Using matching fill colors for the median points
+  scale_fill_manual(values = site_palette) +
+  #Scaling point size to show salinity without overwhelming the plot
+  scale_size_continuous(name = "Salinity (ppt)",
+                        range = c(0.6, 5),
+                        breaks = c(0, 20, 40, 60)) +
+  #Adding clean axis labels, legend labels, title, and subtitle
+  labs(x = "Water temperature (°C)",
+       y = "Dissolved oxygen (mg/L)",
+       color = "Site",
+       title = "Water quality dimensions across NCOS sampling sites",
+       subtitle = "A. Water temperature and dissolved oxygen in water year 2024") +
+  #Using a clean non-default theme
+  theme_bw() +
+  #Customizing the plot theme for a more polished final figure
+  theme(legend.position = "right",
+        plot.title = element_text(face = "bold", size = 15),
+        plot.subtitle = element_text(face = "italic", size = 10),
+        panel.grid.minor = element_blank())
+
+#Displaying the scatterplot
+water_quality_scatter
+```
 
