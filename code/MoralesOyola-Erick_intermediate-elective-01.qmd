@@ -147,6 +147,7 @@ water_quality_clean <- water_quality |>
                                  "Phelps Bridge",
                                  "East Channel",
                                  "Venoco Bridge"))
+
 #Displaying 10 random rows from the cleaned elective dataset
 water_quality_clean |>
   slice_sample(n = 10)
@@ -180,7 +181,7 @@ site_summary
 
 For my inspiration, I chose Cédric Scherer’s “Bill Dimensions of Brush-tailed Penguins.” I really like how the figure combines individual observations with group-level summaries, using color, point size, labels, and a second distribution panel to make the patterns feel informative while being visually polished.
 
-This inspiration makes sense for the water quality dataset because the data also includes multiple continuous variables that can be explored together. Instead of comparing penguin bill length, bill depth, and body mass by species, I can compare water temperature, dissolved oxygen, and salinity across sampling sites at North Campus Open Space.
+This inspiration makes sense for the water quality dataset because the data also includes multiple continuous variables that can be explored together. Instead of comparing penguin bill length, bill depth, and body mass by species, I can compare water temperature, dissolved oxygen, and salinity across three sites at North Campus Open Space.
 
 In my visualization, water temperature will be shown on the x-axis, dissolved oxygen will be shown on the y-axis, salinity will be represented by point size, and site will be represented by color. I also plan to include site-level summary markers or error bars to show median conditions per each site, following the same general idea as the penguin figure’s species-level summaries.
 
@@ -197,7 +198,7 @@ The bottom panel will show the distribution of salinity across sites, similar to
 ```{r}
 #| label: 3-figure-color-palette
 
-#Creating a site color palette inspired by the bright colors in the penguin figure
+#Creating a color palette inspired by the bright colors in the penguin figure
 site_palette <- c(
   "Phelps Bridge" = "#159090",
   "East Channel" = "#FF8C00",
@@ -242,7 +243,8 @@ elective_site_summary <- elective_figure_data |>
             n = n()) |>
   #Ungrouping the dataframe
   ungroup() |>
-  #Creating slightly adjusted oxygen positions so overlapping error bars are readable
+  #Creating slightly adjusted oxygen positions so overlapping 
+  #error bars are readable
   mutate(plot_med_oxygen = case_when(
     site_full == "Phelps Bridge" ~ med_oxygen - 0.25,
     site_full == "East Channel" ~ med_oxygen + 0.35,
@@ -261,14 +263,16 @@ elective_site_summary
 
 #Creating the top panel of the figure
 water_quality_scatter <- ggplot(data = elective_figure_data,
-                                #Mapping temperature, dissolved oxygen, site, and salinity
+                                #Mapping temperature, dissolved oxygen, 
+                                #site, and salinity
                                 mapping = aes(x = temperature_c,
                                               y = do_mg_l,
                                               color = site_full,
                                               size = salinity_ppt)) +
   #Adding individual water quality measurements as opaque points
   geom_point(alpha = 0.5) +
-  #Adding vertical error bars to show dissolved oxygen variation around each site median
+  #Adding vertical error bars to show dissolved oxygen variation 
+  #around each site median
   geom_errorbar(data = elective_site_summary,
               mapping = aes(x = med_temperature,
                             ymin = plot_med_oxygen - sd_oxygen,
@@ -278,7 +282,8 @@ water_quality_scatter <- ggplot(data = elective_figure_data,
               width = 0.35,
               linewidth = 0.8,
               show.legend = FALSE) +
-  #Adding horizontal error bars to show temperature variation around each site median
+  #Adding horizontal error bars to show temperature variation 
+  #around each site median
   geom_errorbar(data = elective_site_summary,
               mapping = aes(y = plot_med_oxygen,
                             xmin = med_temperature - sd_temperature,
@@ -325,4 +330,10 @@ water_quality_scatter <- ggplot(data = elective_figure_data,
 #Displaying the scatterplot
 water_quality_scatter
 ```
+## 4. Describe your process
 
+For this elective, I used Cédric Scherer’s penguin bill-dimensions visualization as a guide for my figure’s structure. I liked how the original figure combined individual observations, group-level summaries, error bars, color, and point size, and I adapted those ideas to display water quality variables from three sites at NCOS.
+
+One challenge was figuring out how to translate the penguin variables into meaningful water quality variables without making the figure too crowded. At first, the scatterplot had too many overlapping points and labels, so I narrowed the data to water year 2024, reduced the point opacity, removed the labels, and relied more on the legend to keep the figure readable.
+
+This visualization differs from the figures I made in class and previous assignments because I designed it as a polished graphic rather than a simpler exploratory plot. In class, most figures focused on showing one relationship clearly, while this figure combines several visual elements at once, including individual measurements, site-level medians, error bars, and an additional variable as point size.
