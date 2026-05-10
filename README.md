@@ -2,7 +2,9 @@
 
 ## General information
 
-This repository contains data and code to ....
+This repository contains data and code for Intermediate Elective 1, using NCOS water quality data to create a visualization of water temperature, dissolved oxygen, and salinity across three sampling sites.
+
+The figure was inspired by Cédric Scherer’s “Bill Dimensions of Brush-tailed Penguins” and its use of individual observations, group summaries, error bars, color, and point size to explore water quality patterns at NCOS.
 
 ## Data and file information
 
