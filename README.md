@@ -16,8 +16,9 @@ The figure was inspired by Cédric Scherer’s “Bill Dimensions of Brush-taile
 │   └── MoralesOyola-Erick_intermediate-elective-01.pdf
 ├── data
 │   ├── NCOS_YSI_Water_Quality_Monitoring_0.csv   # water quality metadata
-│   └── NOAA-weather-data.csv                     # NOAA precipitation and air temp 
-│   └── YSI_Data_Begin_1.csv                      # water quality measurements
+│   └── NOAA-weather-data.csv                    #NOAA precipitation/temp 
+│   └── YSI_Data_Begin_1.csv                      # water quality
+│   └── plan_your_figure.png                    #figure sketch
 └── intermediate-elective.Rproj
 ```
 
