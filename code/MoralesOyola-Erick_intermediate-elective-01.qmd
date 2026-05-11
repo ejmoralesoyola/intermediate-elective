@@ -24,13 +24,9 @@ library(janitor)
 #Loading date package
 library(lubridate)
 
-#Loading package for wrapping long axis labels
+#Loading package for visualization and customizing figure
 library(scales)
-
-#Loading package for arranging plots together
 library(patchwork)
-
-#Loading packages for more customized figure styling
 library(colorspace)
 library(ggtext)
 library(ggdist)
@@ -53,8 +49,9 @@ water_parameters <- read_csv(here("data", "YSI_Data_Begin_1.csv"),
 ## Cleaning 
 
 ```{r}
-#Creating a cleaned metadata dataset
+#| label: cleaning-metadata
 
+#Creating a cleaned metadata dataset
 metadata_clean <- metadata |>
   #Cleaning column names
   clean_names() |>
@@ -96,7 +93,7 @@ water_parameters_clean <- water_parameters |>
 ```
 
 ```{r}
-#| label: joining-water-quality-data
+#| label: joining-data
 
 #Joining metadata and water parameter measurements
 water_quality <- full_join(
@@ -187,7 +184,13 @@ In my visualization, water temperature will be shown on the x-axis, dissolved ox
 
 ## 2. Plan your figure
 
-!! DONT FORGET TO INSERT SKETCH !!!!!!!!! PLEASEEEEE
+```{r}
+#| label: figure-sketch
+
+#Inserting sketch of planned figure
+knitr::include_graphics(here("data", "plan_your_figure.png"))
+```
+
 
 For my figure, I plan to adapt the structure of the penguin bill-dimensions visualization into a water quality figure. The top panel will be a scatterplot showing water temperature on the x-axis and dissolved oxygen on the y-axis, with point color representing site and point size representing salinity. I also plan to include larger site-level summary points and error bars to show median conditions for each site.
 
@@ -198,7 +201,7 @@ The bottom panel will show the distribution of salinity across sites, similar to
 ```{r}
 #| label: 3-figure-color-palette
 
-#Creating a color palette inspired by the bright colors in the penguin figure
+#Creating a color palette inspired by the colors in the penguin figure
 site_palette <- c(
   "Phelps Bridge" = "#159090",
   "East Channel" = "#FF8C00",
@@ -209,7 +212,7 @@ site_palette <- c(
 ```{r}
 #| label: 3-figure-data
 
-#Creating a focused dataset for the final elective figure
+#Creating a final dataset for the elective figure
 elective_figure_data <- water_quality_clean |>
   #Creating year and month columns from the date column
   mutate(year = year(date),
@@ -219,7 +222,7 @@ elective_figure_data <- water_quality_clean |>
     month >= 10 ~ year + 1,
     .default = year
   )) |>
-  #Keeping only water year 2024 to make the figure more focused and readable
+  #Keeping only water year 2024 to make the figure more focused
   filter(wy == "2024") |>
   #Keeping only the three main NCOS sites
   filter(site_full %in% c("Phelps Bridge",
@@ -257,7 +260,7 @@ elective_site_summary
 
 
 ```{r}
-#| label: 3-scatterplot
+#| label: 3-figure-visualization
 #| fig-width: 9
 #| fig-height: 6
 
@@ -313,15 +316,14 @@ water_quality_scatter <- ggplot(data = elective_figure_data,
   scale_size_continuous(name = "Salinity (ppt)",
                         range = c(0.6, 5),
                         breaks = c(0, 20, 40, 60)) +
-  #Adding clean axis labels, legend labels, title, and subtitle
+  #Adding clean axis labels, legend labels, and title
   labs(x = "Water temperature (°C)",
        y = "Dissolved oxygen (mg/L)",
        color = "Site",
-       title = "Water quality dimensions across NCOS sampling sites",
-       subtitle = "A. Water temperature and dissolved oxygen in water year 2024") +
-  #Using a clean non-default theme
+       title = "Water quality dimensions across NCOS sampling sites") +
+  #Using a non-default theme
   theme_bw() +
-  #Customizing the plot theme for a more polished final figure
+  #Customizing the plot theme
   theme(legend.position = "right",
         plot.title = element_text(face = "bold", size = 15),
         plot.subtitle = element_text(face = "italic", size = 10),
